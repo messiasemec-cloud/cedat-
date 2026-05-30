@@ -358,7 +358,8 @@ function filtrarPessoa(p, el) {
 function atualizarTiposPessoa() {
   const pessoa = document.getElementById('selectPessoa').value;
   if (!pessoa) return;
-  const lista = filtrarPorPeriodo(todosProcessos, periodoPessoa).filter(p => p.destinatario === pessoa);
+  // Filtra por todos os períodos para mostrar todos os tipos que a pessoa já recebeu
+  const lista = todosProcessos.filter(p => p.destinatario === pessoa);
   const tipos = [...new Set(lista.map(p => p.tipo).filter(Boolean))].sort();
   const selPT = document.getElementById('selectPessoaTipo');
   const valAtual = selPT.value;
