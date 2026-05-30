@@ -186,7 +186,6 @@
       <div class="painel-titulo">Por tipo</div>
       <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
         <select id="selectTipo" onchange="renderTipo()">
-          <option value="Todos">Todos os tipos</option>
         </select>
         <div class="btn-grupo">
           <button class="btn-filtro ativo" onclick="filtrarTipo('semana',this)">Esta semana</button>
@@ -196,12 +195,8 @@
       </div>
     </div>
     <div class="graficos">
-      <div class="grafico-card">
-        <div class="grafico-titulo">Distribuição por tipo (%)</div>
-        <div class="grafico-wrap"><canvas id="chartTipoRosca"></canvas></div>
-      </div>
-      <div class="grafico-card">
-        <div class="grafico-titulo" id="tituloTipoBarras">Entradas vs Saídas — Todos os tipos</div>
+      <div class="grafico-card full">
+        <div class="grafico-titulo" id="tituloTipoBarras">Entradas vs Saídas</div>
         <div class="grafico-wrap"><canvas id="chartTipoBarras"></canvas></div>
       </div>
     </div>
@@ -302,9 +297,9 @@ function popularSelects() {
   const tipos = [...new Set(todosProcessos.map(p => p.tipo).filter(Boolean))].sort();
   const selT = document.getElementById('selectTipo');
   const valT = selT.value;
-  selT.innerHTML = '<option value="Todos">Todos os tipos</option>';
+  selT.innerHTML = '';
   tipos.forEach(t => selT.innerHTML += `<option value="${t}">${t}</option>`);
-  if (valT) selT.value = valT;
+  if (valT && tipos.includes(valT)) selT.value = valT;
 }
 
 // ── VISÃO GERAL ──────────────────────────────────────
@@ -380,43 +375,14 @@ function renderTipo() {
   const lista = filtrarPorPeriodo(todosProcessos, periodoTipo);
   const tipoSel = document.getElementById('selectTipo').value;
 
-  // Rosca — sempre todos os tipos
-  const porTipo = {};
-  lista.forEach(p => {
-    if (!p.tipo) return;
-    if (!porTipo[p.tipo]) porTipo[p.tipo] = { entradas: 0, saidas: 0 };
-    porTipo[p.tipo].entradas++;
-    if (p.status === 'Concluído') porTipo[p.tipo].saidas++;
-  });
-  const tipos = Object.keys(porTipo).sort((a,b) => porTipo[b].entradas - porTipo[a].entradas).slice(0,10);
-  const cores = ['#185FA5','#0a8a7a','#e05020','#29abe2','#888','#f5a623','#7b68ee','#ff6b6b','#51cf66','#ffd43b'];
-  criarRosca('chartTipoRosca', tipos, tipos.map(t => porTipo[t].entradas), cores.slice(0, tipos.length));
-
-  // Barras — filtrado pelo tipo selecionado
-  if (tipoSel === 'Todos') {
-    // Mostra todos os tipos no gráfico de barras
-    criarBarras('chartTipoBarras', tipos, [
-      { label: 'Entradas', data: tipos.map(t => porTipo[t].entradas), backgroundColor: '#185FA5', borderRadius: 4 },
-      { label: 'Saídas', data: tipos.map(t => porTipo[t].saidas), backgroundColor: '#0a8a7a', borderRadius: 4 }
-    ]);
-    document.getElementById('tituloTipoBarras').textContent = 'Entradas vs Saídas — Todos os tipos';
-  } else {
-    // Mostra só o tipo selecionado — breakdown por pessoa
-    const listaFiltrada = lista.filter(p => p.tipo === tipoSel);
-    const porPessoa = {};
-    listaFiltrada.forEach(p => {
-      if (!p.destinatario) return;
-      if (!porPessoa[p.destinatario]) porPessoa[p.destinatario] = { entradas: 0, saidas: 0 };
-      porPessoa[p.destinatario].entradas++;
-      if (p.status === 'Concluído') porPessoa[p.destinatario].saidas++;
-    });
-    const nomes = Object.keys(porPessoa).sort((a,b) => porPessoa[b].entradas - porPessoa[a].entradas);
-    criarBarras('chartTipoBarras', nomes, [
-      { label: 'Entradas', data: nomes.map(n => porPessoa[n].entradas), backgroundColor: '#185FA5', borderRadius: 4 },
-      { label: 'Saídas', data: nomes.map(n => porPessoa[n].saidas), backgroundColor: '#0a8a7a', borderRadius: 4 }
-    ]);
-    document.getElementById('tituloTipoBarras').textContent = `Entradas vs Saídas — ${tipoSel}`;
-  }
+  // Barras — tipo selecionado, entradas vs saídas simples
+  const listaFiltrada = tipoSel ? lista.filter(p => p.tipo === tipoSel) : lista;
+  const entradas = listaFiltrada.length;
+  const saidas = listaFiltrada.filter(p => p.status === 'Concluído').length;
+  criarBarras('chartTipoBarras', ['Entradas', 'Saídas'], [
+    { data: [entradas, saidas], backgroundColor: ['#185FA5', '#0a8a7a'], borderRadius: 4 }
+  ]);
+  document.getElementById('tituloTipoBarras').textContent = tipoSel ? `Entradas vs Saídas — ${tipoSel}` : 'Entradas vs Saídas';
 }
 
 carregarDados();
