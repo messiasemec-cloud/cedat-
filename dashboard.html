@@ -148,7 +148,9 @@
     <div class="painel-topo">
       <div class="painel-titulo">Por pessoa</div>
       <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
-        <select id="selectPessoa" onchange="renderPessoa()">
+        <select id="selectPessoa" onchange="renderPessoa()"></select>
+        <select id="selectPessoaTipo" onchange="renderPessoa()">
+          <option value="Todos">Todos os tipos</option>
         </select>
         <div class="btn-grupo">
           <button class="btn-filtro ativo" onclick="filtrarPessoa('semana',this)">Esta semana</button>
@@ -171,7 +173,12 @@
         <div class="scorecard-valor laranja" id="pessoaAberto">—</div>
       </div>
     </div>
-    <div id="discosPessoa" style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:1rem;"></div>
+    <div class="graficos" style="margin-top:1rem;">
+      <div class="grafico-card full">
+        <div class="grafico-titulo" id="tituloDiscoPessoa">Distribuição por status</div>
+        <div class="grafico-wrap"><canvas id="chartDiscoPessoa"></canvas></div>
+      </div>
+    </div>
   </div>
 
   <!-- POR TIPO -->
@@ -294,6 +301,12 @@ function popularSelects() {
   selT.innerHTML = '';
   tipos.forEach(t => selT.innerHTML += `<option value="${t}">${t}</option>`);
   if (valT && tipos.includes(valT)) selT.value = valT;
+
+  const selPT = document.getElementById('selectPessoaTipo');
+  const valPT = selPT.value;
+  selPT.innerHTML = '<option value="Todos">Todos os tipos</option>';
+  tipos.forEach(t => selPT.innerHTML += `<option value="${t}">${t}</option>`);
+  if (valPT) selPT.value = valPT;
 }
 
 // ── VISÃO GERAL ──────────────────────────────────────
@@ -343,77 +356,61 @@ function filtrarPessoa(p, el) {
 
 function renderPessoa() {
   const pessoa = document.getElementById('selectPessoa').value;
+  const tipoSel = document.getElementById('selectPessoaTipo').value;
   if (!pessoa) return;
+
   let lista = filtrarPorPeriodo(todosProcessos, periodoPessoa);
   lista = lista.filter(p => p.destinatario === pessoa);
+  if (tipoSel !== 'Todos') lista = lista.filter(p => p.tipo === tipoSel);
+
+  const concluido = lista.filter(p => p.status === 'Concluído').length;
+  const andamento = lista.filter(p => p.status === 'Em andamento').length;
+  const pendente = lista.filter(p => p.status === 'Pendente').length;
 
   document.getElementById('pessoaEntradas').textContent = lista.length;
-  document.getElementById('pessoaSaidas').textContent = lista.filter(p => p.status === 'Concluído').length;
-  document.getElementById('pessoaAberto').textContent = lista.filter(p => p.status === 'Pendente' || p.status === 'Em andamento').length;
+  document.getElementById('pessoaSaidas').textContent = concluido;
+  document.getElementById('pessoaAberto').textContent = andamento + pendente;
 
-  // Agrupar por tipo
-  const porTipo = {};
-  lista.forEach(p => {
-    if (!p.tipo) return;
-    if (!porTipo[p.tipo]) porTipo[p.tipo] = { concluido: 0, andamento: 0, pendente: 0 };
-    const s = p.status || 'Pendente';
-    if (s === 'Concluído') porTipo[p.tipo].concluido++;
-    else if (s === 'Em andamento') porTipo[p.tipo].andamento++;
-    else porTipo[p.tipo].pendente++;
-  });
-
-  const tipos = Object.keys(porTipo).sort((a,b) => {
-    const ta = porTipo[a]; const tb = porTipo[b];
-    return (tb.concluido+tb.andamento+tb.pendente) - (ta.concluido+ta.andamento+ta.pendente);
-  });
+  const titulo = tipoSel === 'Todos'
+    ? `${pessoa} — todos os tipos`
+    : `${pessoa} — ${tipoSel}`;
+  document.getElementById('tituloDiscoPessoa').textContent = titulo;
 
   // Destruir discos antigos
   Object.keys(charts).filter(k => k.startsWith('disco_')).forEach(k => { charts[k].destroy(); delete charts[k]; });
 
-  const container = document.getElementById('discosPessoa');
-  container.innerHTML = '';
-
-  tipos.forEach(tipo => {
-    const d = porTipo[tipo];
-    const total = d.concluido + d.andamento + d.pendente;
-    const card = document.createElement('div');
-    card.style.cssText = 'background:#fff;border-radius:12px;border:1px solid #dde1e5;padding:1.25rem;';
-    const nomeAbrev = tipo.length > 35 ? tipo.substring(0,35)+'...' : tipo;
-    const id = 'disco_' + tipo.replace(/[^a-z0-9]/gi,'_');
-    card.innerHTML = `
-      <div style="font-size:13px;font-weight:600;color:#1a1f24;margin-bottom:4px;">${nomeAbrev}</div>
-      <div style="font-size:11px;color:#5a6472;margin-bottom:12px;">${total} processo${total!==1?'s':''}</div>
-      <div style="position:relative;height:180px;"><canvas id="${id}"></canvas></div>
-      <div style="display:flex;gap:12px;justify-content:center;margin-top:10px;font-size:11px;">
-        <span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:50%;background:#2e7d32;display:inline-block"></span>Concluído (${d.concluido})</span>
-        <span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:50%;background:#f9a825;display:inline-block"></span>Em andamento (${d.andamento})</span>
-        <span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:50%;background:#c62828;display:inline-block"></span>Pendente (${d.pendente})</span>
-      </div>`;
-    container.appendChild(card);
-
-    setTimeout(() => {
-      const ctx = document.getElementById(id);
-      if (!ctx) return;
-      charts[id] = new Chart(ctx.getContext('2d'), {
-        type: 'doughnut',
-        data: {
-          labels: ['Concluído','Em andamento','Pendente'],
-          datasets: [{ data: [d.concluido, d.andamento, d.pendente], backgroundColor: ['#2e7d32','#f9a825','#c62828'], borderWidth: 0 }]
-        },
-        options: {
-          responsive: true, maintainAspectRatio: false,
-          plugins: {
-            legend: { display: false },
-            tooltip: { callbacks: { label: ctx => {
-              const total = ctx.dataset.data.reduce((a,b)=>a+b,0);
-              const pct = total ? Math.round(ctx.raw/total*100) : 0;
-              return ` ${ctx.label}: ${ctx.raw} (${pct}%)`;
-            }}}
-          },
-          cutout: '65%'
+  destroyChart('chartDiscoPessoa');
+  const ctx = document.getElementById('chartDiscoPessoa').getContext('2d');
+  charts['chartDiscoPessoa'] = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: ['Concluído', 'Em andamento', 'Pendente'],
+      datasets: [{ data: [concluido, andamento, pendente], backgroundColor: ['#2e7d32','#f9a825','#c62828'], borderWidth: 0 }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      cutout: '60%',
+      plugins: {
+        legend: {
+          position: 'right',
+          labels: {
+            font: { size: 12 },
+            boxWidth: 14,
+            generateLabels: chart => {
+              const d = chart.data.datasets[0].data;
+              const total = d.reduce((a,b) => a+b, 0);
+              return chart.data.labels.map((l,i) => ({
+                text: l + ': ' + d[i] + ' (' + (total ? Math.round(d[i]/total*100) : 0) + '%)',
+                fillStyle: chart.data.datasets[0].backgroundColor[i],
+                hidden: false,
+                index: i
+              }));
+            }
+          }
         }
-      });
-    }, 50);
+      }
+    }
   });
 }
 
