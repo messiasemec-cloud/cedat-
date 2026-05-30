@@ -251,11 +251,11 @@
 
       // Verifica duplicidade antes de salvar
       try {
-        const urlBusca = SCRIPT_URL + '?acao=buscar&processo=' + encodeURIComponent(processo);
-        const respBusca = await fetch(urlBusca);
-        const dataBusca = await respBusca.json();
-        if (dataBusca.status === 'encontrado') {
-          showFeedback('⚠️ Processo já cadastrado! Destinatário: ' + dataBusca.destinatario, 'error');
+        const urlVerif = SCRIPT_URL + '?acao=verificar&processo=' + encodeURIComponent(processo);
+        const respVerif = await fetch(urlVerif);
+        const dataVerif = await respVerif.json();
+        if (dataVerif.status === 'bloqueado') {
+          showFeedback('⚠️ Processo já está ativo! Status: ' + dataVerif.statusAtual + ' — Destinatário: ' + dataVerif.destinatario, 'error');
           btn.disabled = false;
           btn.textContent = '✓ Registrar processo';
           return;

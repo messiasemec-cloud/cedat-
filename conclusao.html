@@ -201,12 +201,16 @@
       const area = document.getElementById('btnArea');
       area.innerHTML = '';
 
+      const btnDevolver = `<button class="btn" style="background:#888;color:#fff;margin-top:8px" onclick="registrarAcao('devolver')">↩ Devolver processo</button>`;
+
       if (status === 'Pendente') {
-        area.innerHTML = `<button class="btn btn-iniciar" onclick="registrarAcao('iniciar')">▶ Registrar início do trabalho</button>`;
+        area.innerHTML = `<button class="btn btn-iniciar" onclick="registrarAcao('iniciar')">▶ Registrar início do trabalho</button>` + btnDevolver;
       } else if (status === 'Em andamento') {
-        area.innerHTML = `<button class="btn btn-concluir" onclick="registrarAcao('concluir')">✓ Confirmar conclusão</button>`;
+        area.innerHTML = `<button class="btn btn-concluir" onclick="registrarAcao('concluir')">✓ Confirmar conclusão</button>` + btnDevolver;
       } else if (status === 'Concluído') {
         area.innerHTML = `<div style="text-align:center; color: var(--verde); font-weight:600; padding: 12px;">✓ Processo já concluído</div>`;
+      } else if (status === 'Devolvido') {
+        area.innerHTML = `<div style="text-align:center; color: #888; font-weight:600; padding: 12px;">↩ Processo já devolvido</div>`;
       }
     }
 
@@ -256,7 +260,7 @@
 
       try {
         await fetch(url, { mode: 'no-cors' });
-        const msg = acao === 'iniciar' ? '▶ Início registrado com sucesso!' : '✓ Conclusão registrada com sucesso!';
+        const msg = acao === 'iniciar' ? '▶ Início registrado com sucesso!' : acao === 'devolver' ? '↩ Processo devolvido com sucesso!' : '✓ Conclusão registrada com sucesso!';
         showFeedback(msg, 'success');
         document.getElementById('resultado').style.display = 'none';
         document.getElementById('numProcesso').value = '';
