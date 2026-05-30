@@ -148,7 +148,7 @@
     <div class="painel-topo">
       <div class="painel-titulo">Por pessoa</div>
       <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
-        <select id="selectPessoa" onchange="renderPessoa()"></select>
+        <select id="selectPessoa" onchange="atualizarTiposPessoa();renderPessoa()"></select>
         <select id="selectPessoaTipo" onchange="renderPessoa()">
           <option value="Todos">Todos os tipos</option>
         </select>
@@ -351,7 +351,21 @@ function filtrarPessoa(p, el) {
   periodoPessoa = p;
   document.querySelectorAll('#painel-pessoa .btn-filtro').forEach(b => b.classList.remove('ativo'));
   el.classList.add('ativo');
+  atualizarTiposPessoa();
   renderPessoa();
+}
+
+function atualizarTiposPessoa() {
+  const pessoa = document.getElementById('selectPessoa').value;
+  if (!pessoa) return;
+  const lista = filtrarPorPeriodo(todosProcessos, periodoPessoa).filter(p => p.destinatario === pessoa);
+  const tipos = [...new Set(lista.map(p => p.tipo).filter(Boolean))].sort();
+  const selPT = document.getElementById('selectPessoaTipo');
+  const valAtual = selPT.value;
+  selPT.innerHTML = '<option value="Todos">Todos os tipos</option>';
+  tipos.forEach(t => selPT.innerHTML += `<option value="${t}">${t}</option>`);
+  if (valAtual && tipos.includes(valAtual)) selPT.value = valAtual;
+  else selPT.value = 'Todos';
 }
 
 function renderPessoa() {
