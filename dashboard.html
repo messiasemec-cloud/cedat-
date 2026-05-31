@@ -79,7 +79,6 @@
 <div class="abas-wrap">
   <div class="abas">
     <div class="aba ativa" onclick="trocarAba('geral',this)">Visão Geral</div>
-    <div class="aba" onclick="trocarAba('status',this)">Por Status</div>
     <div class="aba" onclick="trocarAba('pessoa',this)">Por Pessoa</div>
     <div class="aba" onclick="trocarAba('tipo',this)">Por Tipo</div>
   </div>
@@ -119,21 +118,9 @@
         <div class="scorecard-sub">pendentes + em andamento</div>
       </div>
     </div>
-  </div>
-
-  <!-- POR STATUS -->
-  <div class="painel" id="painel-status">
-    <div class="painel-topo">
-      <div class="painel-titulo">Por status</div>
-      <div class="btn-grupo">
-        <button class="btn-filtro ativo" onclick="filtrarStatus('semana',this)">Esta semana</button>
-        <button class="btn-filtro" onclick="filtrarStatus('mes',this)">Este mês</button>
-        <button class="btn-filtro" onclick="filtrarStatus('total',this)">Total</button>
-      </div>
-    </div>
-    <div class="graficos">
+    <div class="graficos" style="margin-top:0;">
       <div class="grafico-card">
-        <div class="grafico-titulo">Distribuição (% por status)</div>
+        <div class="grafico-titulo">Distribuição por status (%)</div>
         <div class="grafico-wrap"><canvas id="chartStatusRosca"></canvas></div>
       </div>
       <div class="grafico-card">
@@ -210,7 +197,6 @@ const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyuH_6JgwuINJXqy5gz4
 let todosProcessos = [];
 let charts = {};
 let periodoGeral = 'semana';
-let periodoStatus = 'semana';
 let periodoPessoa = 'semana';
 let periodoTipo = 'semana';
 
@@ -278,8 +264,7 @@ async function carregarDados() {
     todosProcessos = data.processos || [];
     popularSelects();
     renderGeral();
-    renderStatus();
-    renderPessoa();
+      renderPessoa();
     renderTipo();
     document.getElementById('atualizado-geral').textContent = 'Última atualização: ' + new Date().toLocaleString('pt-BR');
   } catch(e) {
@@ -322,29 +307,17 @@ function renderGeral() {
   document.getElementById('totalEntradas').textContent = lista.length;
   document.getElementById('totalSaidas').textContent = lista.filter(p => p.status === 'Concluído').length;
   document.getElementById('totalAberto').textContent = lista.filter(p => p.status === 'Pendente' || p.status === 'Em andamento').length;
-}
 
-// ── POR STATUS ───────────────────────────────────────
-function filtrarStatus(p, el) {
-  periodoStatus = p;
-  document.querySelectorAll('#painel-status .btn-filtro').forEach(b => b.classList.remove('ativo'));
-  el.classList.add('ativo');
-  renderStatus();
-}
-
-function renderStatus() {
-  const lista = filtrarPorPeriodo(todosProcessos, periodoStatus);
   const statusList = ['Pendente', 'Em andamento', 'Concluído', 'Devolvido'];
-  const cores = ['#e65100','#185FA5','#0a8a7a','#888'];
+  const cores = ['#c62828','#f9a825','#2e7d32','#888'];
   const counts = statusList.map(s => lista.filter(p => (p.status||'Pendente') === s).length);
-
   criarRosca('chartStatusRosca', statusList, counts, cores);
   criarBarras('chartStatusBarras', statusList, [{
-    data: counts,
-    backgroundColor: cores,
-    borderRadius: 4
+    data: counts, backgroundColor: cores, borderRadius: 4
   }]);
 }
+
+
 
 // ── POR PESSOA ───────────────────────────────────────
 function filtrarPessoa(p, el) {
