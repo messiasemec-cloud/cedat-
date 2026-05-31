@@ -81,6 +81,7 @@
     <div class="aba ativa" onclick="trocarAba('geral',this)">Visão Geral</div>
     <div class="aba" onclick="trocarAba('pessoa',this)">Por Pessoa</div>
     <div class="aba" onclick="trocarAba('tipo',this)">Por Tipo</div>
+    <div class="aba" onclick="trocarAba('historico',this)">Histórico do Processo</div>
   </div>
 </div>
 
@@ -205,6 +206,23 @@
         <div class="grafico-wrap"><canvas id="chartTipoBarras"></canvas></div>
       </div>
     </div>
+  </div>
+
+  <!-- HISTÓRICO DO PROCESSO -->
+  <div class="painel" id="painel-historico">
+    <div class="painel-topo">
+      <div class="painel-titulo">Histórico do processo</div>
+    </div>
+    <div style="display:flex;gap:10px;align-items:center;margin-bottom:1.5rem;flex-wrap:wrap;">
+      <input type="text" id="inputHistorico" placeholder="Digite o nº do processo..." 
+        style="padding:10px 14px;border:1.5px solid #dde1e5;border-radius:8px;font-size:15px;font-family:'Source Sans 3',sans-serif;outline:none;flex:1;min-width:200px;"
+        onkeypress="if(event.key==='Enter') buscarHistorico()" />
+      <button onclick="buscarHistorico()" 
+        style="background:#0a8a7a;color:white;border:none;padding:10px 20px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;font-family:'Source Sans 3',sans-serif;">
+        🔍 Buscar
+      </button>
+    </div>
+    <div id="resultadoHistorico"></div>
   </div>
 
 </div>
@@ -443,6 +461,130 @@ function renderTipo() {
     { data: [entradas, saidas], backgroundColor: ['#185FA5', '#0a8a7a'], borderRadius: 4 }
   ]);
   document.getElementById('tituloTipoBarras').textContent = tipoSel ? `Entradas vs Saídas — ${tipoSel}` : 'Entradas vs Saídas';
+}
+
+function diasEntre(d1, d2) {
+  const a = new Date(d1), b = new Date(d2);
+  if (isNaN(a) || isNaN(b)) return null;
+  return Math.round((b - a) / (1000*60*60*24));
+}
+
+function parseBR(str) {
+  if (!str) return null;
+  // Formato dd/mm/yyyy, HH:MM:SS
+  const m = str.match(/(\d{2})\/(\d{2})\/(\d{4}),?\s*(\d{2}):(\d{2})/);
+  if (m) return new Date(`${m[3]}-${m[2]}-${m[1]}T${m[4]}:${m[5]}:00`);
+  // Formato yyyy-mm-dd
+  const m2 = str.match(/(\d{4})-(\d{2})-(\d{2})/);
+  if (m2) return new Date(`${m2[1]}-${m2[2]}-${m2[3]}T00:00:00`);
+  return null;
+}
+
+function formatarData(str) {
+  const d = parseBR(str);
+  if (!d) return '—';
+  return d.toLocaleDateString('pt-BR');
+}
+
+function badgeStatusHistorico(s) {
+  const map = { 'Pendente': '#c62828', 'Em andamento': '#f9a825', 'Concluído': '#2e7d32', 'Devolvido': '#888' };
+  const cor = map[s] || '#888';
+  return `<span style="display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;background:${cor}20;color:${cor}">${s||'Pendente'}</span>`;
+}
+
+function calcularTempo(linha) {
+  const status = linha.status || 'Pendente';
+  const recebido = parseBR(linha.dataEnvio);
+  const iniciado = parseBR(linha.dataInicio);
+  const concluido = parseBR(linha.dataConclusao);
+  const devolvido = parseBR(linha.dataDevolucao);
+  const hoje = new Date();
+
+  if (status === 'Concluído' && iniciado && concluido) {
+    const dias = Math.round((concluido - iniciado) / (1000*60*60*24));
+    return `<span style="color:#2e7d32;font-weight:600">Concluído em ${dias} dia${dias!==1?'s':''}</span>`;
+  }
+  if (status === 'Devolvido' && recebido && devolvido) {
+    const dias = Math.round((devolvido - recebido) / (1000*60*60*24));
+    return `<span style="color:#888;font-weight:600">Devolvido em ${dias} dia${dias!==1?'s':''}</span>`;
+  }
+  if (status === 'Em andamento' && iniciado) {
+    const dias = Math.round((hoje - iniciado) / (1000*60*60*24));
+    return `<span style="color:#f9a825;font-weight:600">Iniciado há ${dias} dia${dias!==1?'s':''}</span>`;
+  }
+  if (status === 'Pendente' && recebido) {
+    const dias = Math.round((hoje - recebido) / (1000*60*60*24));
+    return `<span style="color:#c62828;font-weight:600">Recebido há ${dias} dia${dias!==1?'s':''}</span>`;
+  }
+  return '—';
+}
+
+function buscarHistorico() {
+  const num = document.getElementById('inputHistorico').value.trim();
+  if (!num) return;
+
+  const normalizar = s => String(s).replace(/[.\-\/\s]/g, '');
+  const linhas = todosProcessos
+    .filter(p => normalizar(p.processo) === normalizar(num))
+    .sort((a, b) => {
+      const da = parseBR(a.dataEnvio) || new Date(0);
+      const db = parseBR(b.dataEnvio) || new Date(0);
+      return da - db;
+    });
+
+  const container = document.getElementById('resultadoHistorico');
+
+  if (!linhas.length) {
+    container.innerHTML = '<div style="text-align:center;padding:2rem;color:#5a6472;font-size:14px;">Processo não encontrado.</div>';
+    return;
+  }
+
+  // Calcular tempo total
+  const primeira = parseBR(linhas[0].dataEnvio);
+  let tempoTotalHTML = '';
+  const ultimaLinha = linhas[linhas.length - 1];
+  const hoje = new Date();
+
+  if (ultimaLinha.status === 'Concluído' && parseBR(ultimaLinha.dataConclusao)) {
+    const dias = Math.round((parseBR(ultimaLinha.dataConclusao) - primeira) / (1000*60*60*24));
+    tempoTotalHTML = `<span style="color:#2e7d32;font-weight:600">✓ Concluído em ${dias} dia${dias!==1?'s':''} no total</span>`;
+  } else {
+    const dias = Math.round((hoje - primeira) / (1000*60*60*24));
+    tempoTotalHTML = `<span style="color:#e05020;font-weight:600">⏳ Em aberto há ${dias} dia${dias!==1?'s':''} no total</span>`;
+  }
+
+  // Montar tabela
+  let rows = linhas.map((l, i) => `
+    <tr style="${i % 2 === 0 ? '' : 'background:#f9fafb'}">
+      <td style="padding:10px 14px;font-weight:600;color:#1a1f24;">${l.destinatario || '—'}</td>
+      <td style="padding:10px 14px;color:#5a6472;">${formatarData(l.dataEnvio)}</td>
+      <td style="padding:10px 14px;color:#1a1f24;">${l.tipo || '—'}</td>
+      <td style="padding:10px 14px;">${badgeStatusHistorico(l.status)}</td>
+      <td style="padding:10px 14px;">${calcularTempo(l)}</td>
+    </tr>`).join('');
+
+  container.innerHTML = `
+    <div style="background:#fff;border-radius:12px;border:1px solid #dde1e5;overflow:hidden;margin-bottom:1rem;">
+      <div style="background:#0a8a7a;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+        <span style="color:white;font-weight:600;font-size:15px;">Processo ${num}</span>
+        <span style="color:white;font-size:13px;">${tempoTotalHTML.replace(/style="color:[^"]*"/g, 'style="color:white"')}</span>
+      </div>
+      <div style="padding:12px 16px;background:#f0faf8;border-bottom:1px solid #dde1e5;font-size:13px;">${tempoTotalHTML}</div>
+      <div style="overflow-x:auto;">
+        <table style="width:100%;border-collapse:collapse;font-size:13px;">
+          <thead>
+            <tr style="background:#f4f5f6;">
+              <th style="padding:10px 14px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:0.04em;color:#5a6472;font-weight:600;">Responsável</th>
+              <th style="padding:10px 14px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:0.04em;color:#5a6472;font-weight:600;">Recebido em</th>
+              <th style="padding:10px 14px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:0.04em;color:#5a6472;font-weight:600;">Tipo</th>
+              <th style="padding:10px 14px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:0.04em;color:#5a6472;font-weight:600;">Status</th>
+              <th style="padding:10px 14px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:0.04em;color:#5a6472;font-weight:600;">Tempo</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+    </div>`;
 }
 
 carregarDados();
