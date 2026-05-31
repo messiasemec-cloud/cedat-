@@ -241,6 +241,10 @@ function trocarAba(id, el) {
   document.querySelectorAll('.painel').forEach(p => p.classList.remove('ativo'));
   el.classList.add('ativa');
   document.getElementById('painel-' + id).classList.add('ativo');
+  if (id === 'historico') {
+    document.getElementById('inputHistorico').value = '';
+    document.getElementById('resultadoHistorico').innerHTML = '';
+  }
 }
 
 // ── PERÍODO ──────────────────────────────────────────
