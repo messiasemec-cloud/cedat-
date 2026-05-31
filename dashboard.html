@@ -506,7 +506,7 @@ function calcularTempo(linha) {
 
   if (status === 'Concluído' && iniciado && concluido) {
     const dias = Math.round((concluido - iniciado) / (1000*60*60*24));
-    return `<span style="color:#2e7d32;font-weight:600">Concluído em ${dias} dia${dias!==1?'s':''}</span>`;
+    const label = dias === 0 ? "no mesmo dia" : `em ${dias} dia${dias!==1?'s':''}` ; return `<span style="color:#2e7d32;font-weight:600">Concluído ${label}</span>`;
   }
   if (status === 'Devolvido' && recebido && devolvido) {
     const dias = Math.round((devolvido - recebido) / (1000*60*60*24));
