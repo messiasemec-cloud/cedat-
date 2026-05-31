@@ -108,14 +108,14 @@
         <div class="scorecard-sub">processos cadastrados</div>
       </div>
       <div class="scorecard">
-        <div class="scorecard-label">Total de saídas</div>
-        <div class="scorecard-valor verde" id="totalSaidas">—</div>
-        <div class="scorecard-sub">processos concluídos</div>
-      </div>
-      <div class="scorecard">
         <div class="scorecard-label">Saldo em aberto</div>
         <div class="scorecard-valor laranja" id="totalAberto">—</div>
         <div class="scorecard-sub">pendentes + em andamento</div>
+      </div>
+      <div class="scorecard">
+        <div class="scorecard-label">Total de saídas</div>
+        <div class="scorecard-valor verde" id="totalSaidas">—</div>
+        <div class="scorecard-sub">processos concluídos</div>
       </div>
     </div>
     <div class="graficos" style="margin-top:0;">
@@ -152,12 +152,12 @@
         <div class="scorecard-valor azul" id="pessoaEntradas">—</div>
       </div>
       <div class="scorecard">
-        <div class="scorecard-label">Concluídos</div>
-        <div class="scorecard-valor verde" id="pessoaSaidas">—</div>
-      </div>
-      <div class="scorecard">
         <div class="scorecard-label">Em aberto</div>
         <div class="scorecard-valor laranja" id="pessoaAberto">—</div>
+      </div>
+      <div class="scorecard">
+        <div class="scorecard-label">Concluídos</div>
+        <div class="scorecard-valor verde" id="pessoaSaidas">—</div>
       </div>
     </div>
     <div class="graficos" style="margin-top:1rem;">
@@ -180,6 +180,23 @@
           <button class="btn-filtro" onclick="filtrarTipo('mes',this)">Este mês</button>
           <button class="btn-filtro" onclick="filtrarTipo('total',this)">Total</button>
         </div>
+      </div>
+    </div>
+    <div class="scorecards" style="margin-bottom:1.5rem;">
+      <div class="scorecard">
+        <div class="scorecard-label">Entradas</div>
+        <div class="scorecard-valor azul" id="tipoEntradas">—</div>
+        <div class="scorecard-sub">processos cadastrados</div>
+      </div>
+      <div class="scorecard">
+        <div class="scorecard-label">Em aberto</div>
+        <div class="scorecard-valor laranja" id="tipoAberto">—</div>
+        <div class="scorecard-sub">pendentes + em andamento</div>
+      </div>
+      <div class="scorecard">
+        <div class="scorecard-label">Saídas</div>
+        <div class="scorecard-valor verde" id="tipoSaidas">—</div>
+        <div class="scorecard-sub">processos concluídos</div>
       </div>
     </div>
     <div class="graficos">
@@ -413,6 +430,10 @@ function filtrarTipo(p, el) {
 function renderTipo() {
   const lista = filtrarPorPeriodo(todosProcessos, periodoTipo);
   const tipoSel = document.getElementById('selectTipo').value;
+  const listaFiltradaScore = tipoSel ? lista.filter(p => p.tipo === tipoSel) : lista;
+  document.getElementById('tipoEntradas').textContent = listaFiltradaScore.length;
+  document.getElementById('tipoSaidas').textContent = listaFiltradaScore.filter(p => p.status === 'Concluído').length;
+  document.getElementById('tipoAberto').textContent = listaFiltradaScore.filter(p => p.status === 'Pendente' || p.status === 'Em andamento').length;
 
   // Barras — tipo selecionado, entradas vs saídas simples
   const listaFiltrada = tipoSel ? lista.filter(p => p.tipo === tipoSel) : lista;
