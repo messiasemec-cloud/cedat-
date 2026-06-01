@@ -145,7 +145,6 @@
         </select>
         <div class="btn-grupo">
           <button class="btn-filtro ativo" onclick="filtrarPessoa('semana',this)">Esta semana</button>
-          <button class="btn-filtro" onclick="filtrarPessoa('mes',this)">Este mês</button>
           <select id="selectMes_pessoa" onchange="filtrarMesAba('pessoa', this.value)" style="padding:6px 12px;border:1.5px solid var(--cinza-borda);border-radius:20px;font-size:13px;font-family:'Source Sans 3',sans-serif;outline:none;cursor:pointer;">
             <option value="">Selecionar mês</option>
           </select>
@@ -184,7 +183,6 @@
         </select>
         <div class="btn-grupo">
           <button class="btn-filtro ativo" onclick="filtrarTipo('semana',this)">Esta semana</button>
-          <button class="btn-filtro" onclick="filtrarTipo('mes',this)">Este mês</button>
           <select id="selectMes_tipo" onchange="filtrarMesAba('tipo', this.value)" style="padding:6px 12px;border:1.5px solid var(--cinza-borda);border-radius:20px;font-size:13px;font-family:'Source Sans 3',sans-serif;outline:none;cursor:pointer;">
             <option value="">Selecionar mês</option>
           </select>
@@ -349,13 +347,22 @@ function popularMeses() {
   const sorted = [...meses].sort().reverse();
   const nomesMeses = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
   const sels = ['selectMesGeral','selectMes_status','selectMes_pessoa','selectMes_tipo'].map(id => document.getElementById(id)).filter(Boolean);
+  const agora = new Date();
+  const mesAtual = `${agora.getFullYear()}-${String(agora.getMonth()+1).padStart(2,'0')}`;
   sels.forEach(sel => {
     sel.innerHTML = '<option value="">Selecionar mês</option>';
     sorted.forEach(k => {
       const [ano, mes] = k.split('-').map(Number);
       sel.innerHTML += `<option value="${k}">${nomesMeses[mes-1]} ${ano}</option>`;
     });
+    // Selecionar mês atual por padrão
+    if (sorted.includes(mesAtual)) sel.value = mesAtual;
   });
+  // Aplicar mês atual em todas as abas
+  mesSelecionadoGeral = mesAtual; periodoGeral = 'mes_especifico';
+  mesSelecionadoStatus = mesAtual; periodoStatus = 'mes_especifico';
+  mesSelecionadoPessoa = mesAtual; periodoPessoa = 'mes_especifico';
+  mesSelecionadoTipo = mesAtual; periodoTipo = 'mes_especifico';
 }
 
 function popularSelects() {
