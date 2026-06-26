@@ -432,7 +432,10 @@ function renderGeral() {
   document.getElementById('totalEntradas').textContent = lista.length;
   document.getElementById('totalTerceiros').textContent = lista.filter(p => (p.status||'') === 'Aguardando CTIGI' || (p.status||'') === 'Aguardando SEFIN').length;
   document.getElementById('totalSaidas').textContent = lista.filter(p => (p.status||'') === 'Concluído').length;
-  document.getElementById('totalAberto').textContent = lista.filter(p => (p.status||'Pendente') === 'Pendente' || (p.status||'') === 'Em andamento').length;
+  const pendentes = lista.filter(p => (p.status||'Pendente') === 'Pendente').length;
+  const emAndamento = lista.filter(p => (p.status||'') === 'Em andamento').length;
+  console.log('Pendente:', pendentes, '| Em andamento:', emAndamento, '| Total lista:', lista.length);
+  document.getElementById('totalAberto').textContent = pendentes + emAndamento;
 
   const statusList = ['Aguardando início', 'Em andamento', 'Ag. CTIGI', 'Ag. SEFIN', 'Concluído', 'Devolvido'];
   const cores = ['#c62828','#f9a825','#7b3fa0','#9c5fb5','#2e7d32','#888'];
